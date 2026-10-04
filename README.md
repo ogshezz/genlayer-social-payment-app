@@ -4,22 +4,20 @@ A complete **GenLayer Intelligent Contract** for a decentralized social payment 
 
 ## Features
 
-✅ **User Profiles** – Create a username and bio  
+✅ **User Profiles** – Create a username (alphanumeric + underscore) and bio  
 ✅ **GEN Payments** – Send native GEN to users by username  
-✅ **ERC-20 Tokens** – Send any token to users by username  
+✅ **ERC-20 Tokens** – Send any ERC-20 token to users by username  
 ✅ **Money Requests** – Request payments from other users  
-✅ **Social Feed** – Post messages and content  
-✅ **Post Tips** – Tip posts with GEN  
+✅ **Social Feed** – Post messages (up to 1000 chars)  
+✅ **Post Tips** – Tip posts with native GEN  
 ✅ **Transaction History** – Complete audit trail per user  
 ✅ **Follow System** – Follow and unfollow other users  
 
----
-
-## What the Contract Does
+## What This Does
 
 This contract enables a social-first payment experience on GenLayer:
 
-1. **Profiles** – Users register with a username (3-32 chars) and optional bio
+1. **Profiles** – Users register with a validated username (3-32 chars, alphanumeric + underscore) and optional bio (max 500 chars)
 2. **Payments** – Send funds directly to another user's username
 3. **Requests** – Ask for money from friends/colleagues with a custom message
 4. **Social Feed** – Post short messages (up to 1000 chars)
@@ -27,53 +25,79 @@ This contract enables a social-first payment experience on GenLayer:
 6. **History** – View all transactions (paginated)
 7. **Following** – Build a social graph
 
----
-
-## File Structure
+## Project Structure
 
 ```
 genlayer-social-payment-app/
 ├── contract/
-│   └── social_payment_app.py    # Main contract code
-├── README.md                     # This file
-└── requirements.txt              # Python dependencies (optional)
+│   └── social_payment_app.py       (Main contract code, 800+ lines)
+├── tests/
+│   └── direct/
+│       └── test_social_payment_app.py   (Direct test scaffold)
+├── README.md                       (This file)
+├── requirements.txt                (Python dependencies)
+└── .gitignore
 ```
 
----
+## Current Version
 
-## How to Deploy on GenLayer Studio
+**SocialPaymentApp v1.1.0**
 
-### 1. Open GenLayer Studio
+Key improvements:
+- GenLayer dependency header included
+- Proper validation for usernames (alphanumeric + underscore only)
+- Bio length limit (500 chars)
+- Safer storage pattern for persistent records
+- Complete documentation with examples
+- Test scaffold included
 
-Go to [GenLayer Studio](https://genlayer.studio) (or your local GenLayer environment)
+## GenLayer Dependency
 
-### 2. Create a New Contract
+This contract requires the GenLayer SDK. The dependency header is included:
+
+```python
+# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+```
+
+## Deploying in GenLayer Studio
+
+### Step 1: Open GenLayer Studio
+
+Go to [GenLayer Studio](https://genlayer.studio) (or your local environment)
+
+### Step 2: Create a New Contract
 
 - Click **"New Contract"**
-- Select **"Python"** as the language
+- Select **"Python"**
 
-### 3. Copy the Contract Code
+### Step 3: Copy the Contract Code
 
 - Open `contract/social_payment_app.py`
 - Copy the entire Python code
-- Paste it into the GenLayer Studio editor
+- Paste into GenLayer Studio editor
 
-### 4. Compile
+### Step 4: Compile
 
 - Click **"Compile"**
-- Fix any syntax errors if they appear
+- Fix any errors if they appear
 
-### 5. Deploy
+### Step 5: Deploy
 
 - Click **"Deploy"**
 - Approve the transaction
-- Save the deployed contract address
+- Save the contract address
 
-### 6. Interact with the Contract
+## Validating Locally
 
-Use the contract address to call functions via the Studio UI or API.
+Before deploying to GenLayer Studio, validate the contract:
 
----
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run direct tests
+pytest tests/direct/ -v
+```
 
 ## How to Interact with It
 
@@ -82,22 +106,31 @@ Use the contract address to call functions via the Studio UI or API.
 ```python
 contract.create_profile(
     username="alice",
-    bio="building on GenLayer"
+    bio="Building on GenLayer"
 )
 ```
+
+**Username rules:**
+- Minimum 3 characters
+- Maximum 32 characters  
+- Alphanumeric (a-z, 0-9) and underscore only
+- Stored as lowercase
+
+**Bio rules:**
+- Maximum 500 characters
 
 ### 2. Get Your Profile
 
 ```python
-contract.get_my_profile()
-# Returns: UserProfile(username="alice", bio="...", created_at="...")
+profile = contract.get_my_profile()
+print(profile.username)  # "alice"
+print(profile.bio)       # "Building on GenLayer"
 ```
 
-### 3. Resolve a Username to Address
+### 3. Resolve a Username
 
 ```python
-contract.resolve_username("bob")
-# Returns: Address("0x...")
+bob_address = contract.resolve_username("bob")
 ```
 
 ### 4. Send GEN to Another User
@@ -109,69 +142,72 @@ contract.send_gen(
 )
 ```
 
-**⚠️ Important:** Attach GEN as transaction value:
-- **Studio UI:** Add value in the transaction section
-- **API:** Include `value` field in the transaction
+**Important:** Attach GEN as transaction value:
+- **GenLayer Studio UI:** Use the transaction value field
+- **API:** Include `value` in the transaction
 
 ### 5. Send ERC-20 Tokens
 
+First, approve the contract:
+
 ```python
-# First, approve the contract to spend your tokens:
 token_contract.approve(
     spender=social_pay_address,
     amount=1000
 )
+```
 
-# Then send:
+Then send:
+
+```python
 contract.send_token(
     username="carol",
     token_address="0xYourTokenContractAddress",
     amount=1000,
-    note="Payment for design"
+    note="Payment for design work"
 )
 ```
 
 ### 6. Request Money
 
 ```python
-# Request 50 GEN from dave
-contract.request_money(
+request_id = contract.request_money(
     username="dave",
     amount=50,
     token_address="0x0000000000000000000000000000000000000000",  # GEN
     note="Lunch today?"
 )
-# Returns: request_id (1, 2, 3, ...)
+# Returns: 1, 2, 3, ... (request ID)
 ```
 
 ### 7. Pay a GEN Request
 
 ```python
-# Dave pays the request
-contract.pay_request_gen(
-    request_id=1
-)
-
-# Must attach GEN value = requested amount
+contract.pay_request_gen(request_id=1)
 ```
+
+**Must attach GEN value equal to the request amount.**
 
 ### 8. Pay a Token Request
 
+First approve the token, then:
+
 ```python
-# First approve tokens, then:
-contract.pay_request_token(
-    request_id=2
-)
+contract.pay_request_token(request_id=2)
 ```
 
 ### 9. Create a Post
 
 ```python
-contract.create_post(
+post_id = contract.create_post(
     content="Just deployed my first GenLayer contract!"
 )
-# Returns: post_id
+# Returns: 1, 2, 3, ... (post ID)
 ```
+
+**Post rules:**
+- Cannot be empty
+- Maximum 1000 characters
 
 ### 10. Tip a Post
 
@@ -180,19 +216,26 @@ contract.tip_post(
     post_id=1,
     note="Great work!"
 )
-# Attach GEN value as the tip amount
 ```
+
+**Attach GEN value as the tip amount.**
 
 ### 11. View Transaction History
 
 ```python
-# Get transaction count
-contract.get_user_transaction_count()
+# Get count
+count = contract.get_user_transaction_count()
 
-# Get paginated list (first 10 transactions)
-contract.get_user_transactions(
+# Get first 20 transactions
+transactions = contract.get_user_transactions(
     start_index=0,
-    count=10
+    count=20
+)
+
+# Get next 20
+transactions = contract.get_user_transactions(
+    start_index=20,
+    count=20
 )
 ```
 
@@ -200,61 +243,29 @@ contract.get_user_transactions(
 
 ```python
 contract.follow_user("bob")
-
-# View followers/following
-contract.get_followers()
-contract.get_following()
-contract.get_followers_count()
-contract.get_following_count()
 ```
 
-### 13. Unfollow a User
+### 13. View Followers/Following
+
+```python
+following = contract.get_following()
+followers = contract.get_followers()
+following_count = contract.get_following_count()
+followers_count = contract.get_followers_count()
+```
+
+### 14. Unfollow a User
 
 ```python
 contract.unfollow_user("bob")
 ```
 
-### 14. Get App Info
+### 15. Get App Info
 
 ```python
-contract.get_app_info()
-# Returns: "SocialPaymentApp v1.0.0"
+info = contract.get_app_info()
+print(info)  # "SocialPaymentApp v1.1.0"
 ```
-
----
-
-## Example End-to-End Flow
-
-**Scenario:** Alice sends GEN to Bob, Bob posts something, Alice tips the post
-
-```python
-# Step 1: Alice creates profile
-alice.create_profile(username="alice", bio="Developer")
-
-# Step 2: Bob creates profile
-bob.create_profile(username="bob", bio="Designer")
-
-# Step 3: Alice sends 100 GEN to Bob
-alice.send_gen(
-    username="bob",
-    note="Payment for design work"
-)  # Attach 100 GEN
-
-# Step 4: Bob creates a post
-bob_post_id = bob.create_post(content="New design system complete!")
-
-# Step 5: Alice tips the post with 10 GEN
-alice.tip_post(
-    post_id=bob_post_id,
-    note="Amazing!"
-)  # Attach 10 GEN
-
-# Step 6: Both can view their transaction history
-alice_txns = alice.get_user_transactions(0, 10)
-bob_txns = bob.get_user_transactions(0, 10)
-```
-
----
 
 ## Data Structures
 
@@ -263,9 +274,9 @@ bob_txns = bob.get_user_transactions(0, 10)
 ```python
 @dataclass
 class UserProfile:
-    username: str           # Username (3-32 chars, lowercase)
-    bio: str               # User bio
-    created_at: str        # Timestamp of creation
+    username: str       # Username (3-32 chars, lowercase)
+    bio: str            # User bio (max 500 chars)
+    created_at: str     # Timestamp of creation
 ```
 
 ### SocialPost
@@ -273,11 +284,11 @@ class UserProfile:
 ```python
 @dataclass
 class SocialPost:
-    post_id: u256          # Unique post ID
-    author: Address        # Post author's wallet
-    content: str           # Post content (max 1000 chars)
-    created_at: str        # Creation timestamp
-    tips_received: u256    # Total GEN tips received
+    post_id: u256       # Unique post ID
+    author: Address     # Post author's wallet
+    content: str        # Post content (max 1000 chars)
+    created_at: str     # Creation timestamp
+    tips_received: u256 # Total GEN tips received
 ```
 
 ### MoneyRequest
@@ -285,14 +296,14 @@ class SocialPost:
 ```python
 @dataclass
 class MoneyRequest:
-    request_id: u256       # Unique request ID
-    requester: Address     # Who is requesting
-    payer: Address         # Who should pay
-    amount: u256           # Amount to pay
-    token: Address         # Token address (zero = GEN)
-    note: str              # Request message
-    created_at: str        # Creation timestamp
-    paid: bool             # Whether it was paid
+    request_id: u256    # Unique request ID
+    requester: Address  # Who is requesting
+    payer: Address      # Who should pay
+    amount: u256        # Amount to pay
+    token: Address      # Token address (zero = GEN)
+    note: str           # Request message
+    created_at: str     # Creation timestamp
+    paid: bool          # Whether it was paid
 ```
 
 ### TransactionRecord
@@ -300,19 +311,17 @@ class MoneyRequest:
 ```python
 @dataclass
 class TransactionRecord:
-    transaction_id: u256   # Unique transaction ID
-    sender: Address        # Sender address
-    recipient: Address     # Recipient address
-    amount: u256           # Amount transferred
-    token: Address         # Token address (zero = GEN)
-    transaction_type: str  # GEN_PAYMENT, TOKEN_PAYMENT, REQUEST_PAYMENT, POST_TIP
-    reference_id: u256     # Link to request/post (if applicable)
-    note: str              # Transaction note
-    timestamp: str         # When it happened
-    status: str            # "submitted", "finalized", etc.
+    transaction_id: u256    # Unique transaction ID
+    sender: Address         # Sender address
+    recipient: Address      # Recipient address
+    amount: u256            # Amount transferred
+    token: Address          # Token address (zero = GEN)
+    transaction_type: str   # GEN_PAYMENT, TOKEN_PAYMENT, REQUEST_PAYMENT, POST_TIP
+    reference_id: u256      # Link to request/post (if applicable)
+    note: str               # Transaction note
+    timestamp: str          # When it happened
+    status: str             # "submitted", "finalized", etc.
 ```
-
----
 
 ## Important Notes
 
@@ -322,11 +331,13 @@ Zero address (`0x0000000000000000000000000000000000000000`) represents **native 
 
 Any other address is treated as an **ERC-20 token contract**.
 
-### Case Sensitivity
+### Username Validation
 
-Usernames are **case-insensitive** and stored in lowercase. 
-
-- `"Alice"` and `"alice"` refer to the same profile
+Usernames are:
+- **Case-insensitive** ("Alice" and "alice" are the same)
+- **Normalized to lowercase** in storage
+- **3-32 characters** long
+- **Alphanumeric + underscore only** (no special chars, spaces, etc.)
 
 ### Token Approvals
 
@@ -338,61 +349,89 @@ token.approve(social_pay_contract_address, amount)
 
 ### Pagination
 
-Transaction history is paginated. Use `start_index` and `count` to fetch in batches:
+Transaction history is paginated. Use `start_index` and `count`:
 
 ```python
-# Get 20 transactions, starting from index 0
+# Get 20 transactions starting from index 0
 contract.get_user_transactions(start_index=0, count=20)
 
 # Get next 20
 contract.get_user_transactions(start_index=20, count=20)
 ```
 
----
+### Storage Patterns
+
+This contract uses GenLayer's persistent storage patterns:
+- **TreeMap** for key-value storage
+- **DynArray** for dynamic arrays
+- **@allow_storage** for dataclass persistence
+- Safer immutable record replacement pattern for updates
+
+## Example End-to-End Flow
+
+```python
+# Alice creates a profile
+alice.create_profile(username="alice", bio="Developer")
+
+# Bob creates a profile
+bob.create_profile(username="bob", bio="Designer")
+
+# Alice sends 100 GEN to Bob
+alice.send_gen(username="bob", note="Payment for design work")  # Attach 100 GEN
+
+# Bob creates a post
+post_id = bob.create_post(content="New design system complete!")
+
+# Alice tips the post with 10 GEN
+alice.tip_post(post_id=post_id, note="Amazing!")  # Attach 10 GEN
+
+# Alice and Bob view their transaction history
+alice_txns = alice.get_user_transactions(start_index=0, count=10)
+bob_txns = bob.get_user_transactions(start_index=0, count=10)
+
+# Alice follows Bob
+alice.follow_user("bob")
+
+# Check followers/following
+print(alice.get_following_count())  # 1
+print(bob.get_followers_count())    # 1
+```
 
 ## Future Enhancements
 
-Possible improvements to the contract:
+Possible improvements:
 
-- **Likes & Comments** – Extend social features
-- **User Reputation** – Track trust/reputation scores
-- **Feed Filtering** – Follow feed, trending posts, etc.
-- **Creator Payouts** – Built-in creator monetization
-- **Escrow** – Hold funds until both parties confirm
-- **Dispute Resolution** – Handle payment disputes
-- **Token Metadata** – Store price feeds for USD valuation
-- **Premium Profiles** – Paid verification badges
-
----
+- Likes and comments on posts
+- User reputation system
+- Trending posts and feeds
+- Creator payouts
+- Escrow for payments
+- Dispute resolution
+- Token price feeds
+- Premium profiles
 
 ## Testing
 
-To test locally, use GenLayer's Python testing framework:
+Run the test scaffold:
 
-```python
-import pytest
-from social_payment_app import SocialPaymentApp
-
-def test_create_profile():
-    app = SocialPaymentApp()
-    # Test implementation
-    assert True
+```bash
+pytest tests/direct/ -v
 ```
 
----
+To add full integration tests, use GenLayer's Python testing framework with the contract's public methods.
 
 ## License
 
 MIT
 
----
-
 ## Support
 
-For issues or questions:
+For questions or issues:
 
-1. Check the GenLayer documentation
-2. Review the contract code comments
+1. Check GenLayer documentation
+2. Review contract code comments
 3. Test in GenLayer Studio with sample transactions
 
-**Happy building! 🚀**
+---
+
+**Built on GenLayer. Powered by on-chain intelligence.** 🚀

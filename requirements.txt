@@ -1,2 +1,2 @@
-genlayer-sdk
-pytest
+pytest>=7.0.0
+genlayer-sdk>=1.0.0
